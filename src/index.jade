@@ -1,0 +1,329 @@
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1, maximum-scale=1')
+    title React at Your Grocer
+    link(rel='stylesheet', type='text/css', href='build/build.css')
+  body
+
+    article
+
+      section.green-bg
+        p
+          img(src="images/yg-logo.png" width="130", alt: '')
+
+      section.bg( style="background-image: url(images/morgan.jpg)")
+        h1
+          | This is 
+          strong Morgan
+
+      section
+        h2 yourgrocer.com.au
+        p.text-center
+          strong Rails app 
+          | built on 
+          img(src="images/spree-logo.svg" height="31")
+          br
+          | Traditional web app with jQuery
+          br
+          | Existing JSON API
+
+      section.white-bg
+        img(src="images/cart-1.png" width="979")
+      
+      section.white-bg
+        img(src="images/cart-2.png" width="971")
+
+      section
+        h2 Back to school
+        img(src="images/react-logo.svg" width="100")
+        p.text-center
+          a(href="https://facebook.github.io/react/docs/tutorial.html") Facebook's React Tutorial
+          br
+          a(href="https://www.youtube.com/watch?v=Pd6Ub7Ju2RM") Learn React, Flux, and Flow: Part I - @colinmegill
+          br
+          a(href="http://blog.andrewray.me/reactjs-for-stupid-people") React for stupid people - @andrewray
+          br
+          a(href="http://blog.andrewray.me/flux-for-stupid-people") Flux for stupid people - @andrewray
+          br
+          a(href="https://github.com/markbrown4/gmail-react") Gmail
+
+      section
+        h2 Flux in 18 lines
+        pre
+          code.language-coffeescript.
+            window.App =
+              Components: {}
+              Actions: {}
+              Stores: {}
+
+            App.Dispatcher = MicroEvent.mixin
+              register: (events)-&gt;
+                for eventName, callback of events
+                  @bind eventName, callback
+
+            Actions =
+              dispatch: (name, payload)-&gt;
+                App.Dispatcher.trigger name, payload
+
+            App.createActions = (obj)-&gt;
+              Object.assign(Object.create(Actions), obj)
+
+            Store =
+              emitChange: -&gt; @trigger 'change'
+
+            App.createStore = (obj)-&gt;
+              store = Object.assign(Object.create(Store), obj)
+              MicroEvent.mixin store
+
+      section
+        p
+          strong Action 
+          | &nbsp; &gt; &nbsp; 
+          strong Dispatcher 
+          | &nbsp; &gt; &nbsp; 
+          strong Store 
+          | &nbsp; &gt; &nbsp; 
+          strong Component 
+
+      section.white-bg
+        img(src="images/cart-2.png" width="971")
+
+      section
+        h2 Components initiate Actions
+        pre
+          code.language-coffeescript.
+            { CartActions } = App.Actions
+
+            App.Components.CartItem = React.createClass
+              increment: -&gt;
+                CartActions.updateQuantity(@props.id, @props.quantity + 1)
+
+              render: -&gt;
+                &lt;a onClick={@increment}&gt;
+                  &lt;i className="icon icon-chevron-up" /&gt;
+                &lt;/a&gt;
+
+      section
+        h2 Actions dispatch an event with a unique name and payload
+        pre
+          code.language-coffeescript.
+            App.Actions.CartActions = App.createActions
+              updateQuantity: (id, quantity)-&gt;
+                @dispatch 'cart-update-line-item-quantity', id, quantity
+
+      section
+        h2 Actions are a good place to make requests
+        pre
+          code.language-coffeescript.
+            App.Actions.CartActions = App.createActions
+              updateQuantity: (id, quantity)-&gt;
+                @dispatch 'cart-update-line-item-quantity', id, quantity
+
+                updateQuantity(id, quantity)
+
+            # each lineItem can have a timeout
+            timeouts = {}
+            updateQuantity = (id, quantity)-&gt;
+              clearTimeout(timeouts[id]) if timeouts[id]?
+              timeouts[id] = setTimeout -&gt;
+                SpreeAPI.updateQuantity id, quantity
+              , 500
+
+      section
+        h2 Stores
+        pre
+          code.language-coffeescript.
+            _order =
+              lineItems: []
+
+            App.Stores.CartStore = CartStore = App.createStore
+              getState: -&gt;
+                order: _order
+
+            updateQuantity = (id, quantity)-&gt;
+              item = _order.lineItems.find (i)-&gt; i.id == id
+              item.quantity = quantity if item?
+
+              CartStore.emitChange()
+
+            App.Dispatcher.register
+              'cart-update-line-item-quantity': (id, quantity)-&gt;
+                updateQuantity(id, quantity)
+
+      section
+        h2 Components
+        pre
+          code.language-coffeescript.
+            { CartStore } = App.Stores
+
+            App.Components.CartContainer = React.createClass
+              getInitialState: -&gt;
+                CartStore.getState()
+
+              componentDidMount: -&gt;
+                CartStore.bind 'change', @onChange
+
+              componentWillUnmount: -&gt;
+                CartStore.unbind 'change', @onChange
+
+              onChange: -&gt;
+                @setState CartStore.getState()
+
+      section
+        h2 Container Components
+        pre
+          code.language-coffeescript.
+            { CartStore } = App.Stores
+            { Cart } = App.Components
+
+            App.Components.CartContainer = React.createClass
+              getInitialState: -&gt;
+                CartStore.getState()
+
+              componentDidMount: -&gt;
+                CartStore.bind 'change', @onChange
+
+              componentWillUnmount: -&gt;
+                CartStore.unbind 'change', @onChange
+
+              onChange: -&gt;
+                @setState CartStore.getState()
+
+              render: -&gt;
+                # separate data fetching / rendering
+                &lt;Cart {...@state} /&gt;
+      
+      section
+        p So that's data
+
+      section
+        h2 Computation
+        img(src="images/cart-3.png" width="971")
+
+      section
+        h2 CartItem
+        pre
+          code.language-coffeescript.
+            { currency } = App.Filters
+
+            App.Components.CartItem = React.createClass
+              render: -&gt;
+                &lt;div className={classNames('cart-item row', { 'cart-item-removed': @props.quantity == 0 })}&gt;
+                  ...
+                  &lt;div className="col"&gt;
+                    &lt;QuantitySpinner quantity={@props.quantity} min=1 onIncrement={@increment} onDecrement={@decrement} /&gt;
+                  &lt;/div&gt;
+                  &lt;div className="col"&gt;
+                    &lt;strong className="pull-right"&gt;{currency(@props.price * @props.quantity)}&lt;/strong&gt;
+                  &lt;/div&gt;
+                  &lt;div className="col"&gt;
+                    &lt;a className="btn btn-sm btn-danger pull-right" onClick={@remove}&gt;
+                      &lt;i className="icon icon-trash" /&gt;
+                    &lt;/a&gt;
+                  &lt;/div&gt;
+                &lt;/div&gt;
+
+      section
+        h2 CartSummary
+        pre
+          code.language-coffeescript.
+            { currency } = App.Filters
+
+            App.Components.CartSummary = React.createClass
+              render: -&gt;
+                subTotal = _.sum @props.order.lineItems, (lineItem)-&gt;
+                  lineItem.price * lineItem.quantity
+                gstTotal = @props.order.taxTotal
+                deliveryTotal = @props.order.estimatedShipTotal
+                adjustmentsTotal = _.sum @props.order.adjustments, (a)-&gt; a.amount
+
+                estimatedTotal = subTotal + deliveryTotal + adjustmentsTotal
+                pendingClass = classNames('pending-update': @props.states.totalsPendingUpdate)
+
+                &lt;div className="cart-summary"&gt;
+                  &lt;div className="total-item row"&gt;
+                    &lt;div className="total-label"&gt;Groceries&lt;/div&gt;
+                    &lt;div className="total-value"&gt;{ currency(subTotal) }&lt;/div&gt;
+                  &lt;/div&gt;
+                  ...
+                  { for adjustment in @props.order.adjustments
+                    &lt;div className={ "total-item row \#{ pendingClass }"}&gt;
+                      &lt;div className="total-label"&gt;{ adjustment.label }&lt;/div&gt;
+                      &lt;div className="total-value"&gt;{ currency(adjustment.amount) }&lt;/div&gt;
+                    &lt;/div&gt;
+                  }
+                  ...
+                &lt;/div&gt;
+
+      section
+        h2 States on Stores
+        pre
+          code.language-coffeescript.
+            _order =
+              lineItems: []
+            _states =
+              pendingUpdate: false
+
+            App.Stores.CartStore = CartStore = App.createStore
+              getState: -&gt;
+                order: _order
+                states: _states
+
+            updateQuantity = (id, quantity)-&gt;
+              item = _order.lineItems.find (i)-&gt; i.id == id
+              item.quantity = quantity if item?
+              
+              _states.pendingUpdate = true
+
+              CartStore.emitChange()
+            
+            updateTotals = (data)->
+              _order = data.order
+              _states.pendingUpdate = false
+              
+              CartStore.emitChange()
+
+            App.Dispatcher.register
+              'cart-update-line-item-quantity': (id, quantity)-&gt; updateQuantity(id, quantity)
+              'order-totals-updated': (data)-&gt; updateTotals(data)
+
+      section.white-bg
+        h1 CartSummaryContainer
+        img(src="images/checkout-summary.png" width="307.5")
+
+      section
+        h1 Bootstrapping stores
+        pre
+          code.language-haml.
+            #cart-component
+              = react_component 'App.Components.CartContainer'
+            
+            :coffee
+              App.Stores.CartStore.bootstrap
+                \#{ render('orders/_order.jbuilder') }
+        pre
+          code.language-coffeescript.
+            App.Stores.CartStore = CartStore = App.createStore
+              bootstrap: (data)->
+                _order = data.order
+                
+                @emitChange()
+
+      section.white-bg
+        img(src="images/delivery-picker.png" width="431")
+
+      section
+        img(src="images/recipes.png" width="1123")
+
+      section
+        h1 Thanks
+        p @markbrown4
+        img(src="images/i9dev-logo.svg" width="150")
+
+      section.green-bg
+        p
+          img(src="images/yg-logo.png" width="130", alt: '')
+
+    script(src='build/build.js')
