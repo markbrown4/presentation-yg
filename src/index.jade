@@ -327,6 +327,104 @@ html
         img(src="images/recipes.png" width="1123")
 
       section
+        h2 Testing
+        pre
+          code.language-coffeescript.
+            { CartActions } = App.Actions
+            { CartStore } = App.Stores
+
+            server = null
+            clock = null
+            order = null
+
+            describe 'CartActions', ->
+              before ->
+                server = sinon.fakeServer.create()
+                clock = sinon.useFakeTimers()
+
+              after ->
+                server.restore()
+                clock.restore()
+
+              beforeEach ->
+                order = chai.create('order')
+                CartStore.bootstrap(order: order)
+
+              describe 'incrementQuantity', ->
+                it 'should increment total quantity in CartStore', ->
+                  totalQty = _.sum order.line_items, 'quantity'
+                  lineItem = order.line_items[0]
+                  CartActions.incrementQuantity(lineItem.id, lineItem.quantity + 1)
+
+                  newOrder = CartStore.getState().order
+                  newTotalQty = _.sum newOrder.line_items, 'quantity'
+
+                  expect(newTotalQty).to.equal(totalQty + 1)
+
+              describe 'decrementQuantity', ->
+                it 'should increment quantity in CartStore', ->
+                  totalQty = _.sum order.line_items, 'quantity'
+                  lineItem = order.line_items[0]
+                  CartActions.decrementQuantity(lineItem.id, lineItem.quantity - 1)
+
+                  newOrder = CartStore.getState().order
+                  newTotalQty = _.sum newOrder.line_items, 'quantity'
+
+                  expect(newTotalQty).to.equal(totalQty - 1)
+
+              describe 'removeLineItem', ->
+                it 'should set quantity to 0 in CartStore', ->
+                  lineItem = order.line_items[0]
+                  CartActions.removeLineItem(lineItem.id, lineItem.variant.id)
+
+                  newOrder = CartStore.getState().order
+                  lineItem = newOrder.line_items.find (l)-> l.id == lineItem.id
+
+                  expect(lineItem.quantity).to.equal(0)
+
+              describe 'applyCoupon', ->
+                it 'should add an adjustment CartStore', ->
+                  CartActions.applyCoupon('IKNOWPETERPAN')
+                  # PUT /shop/api/orders/:id/apply_coupon_code
+
+                  server.requests[0].respond 200, { "Content-Type": "application/json" }, JSON.stringify
+                    success: "The coupon code was successfully applied to your order."
+                    error: null
+                  server.requests.shift()
+
+                  # GET /shop/api/orders/:id
+                  order.adjustments.push
+                    eligible: true
+                    amount: '-4.00'
+                    label: 'Free delivery'
+                  server.requests[0].respond 200, { "Content-Type": "application/json" }, JSON.stringify(order)
+                  server.requests.shift()
+
+                  newOrder = CartStore.getState().order
+
+                  expect(newOrder.adjustments.length).to.equal(order.adjustments.length)
+
+                it 'should expose an error if the coupon is no good', ->
+                  CartActions.applyCoupon('IKNOWDARTH')
+
+                  server.requests[0].respond 200, { "Content-Type": "application/json" }, JSON.stringify
+                    success: null
+                    error: "The coupon code was invalid."
+                  server.requests.shift()
+
+                  cartStates = CartStore.getState().order
+                  expect(cartStates.couponError).to.equal("The coupon code was invalid.")
+
+      sections
+        h1 Thoughts so far
+        p.text-center
+          | Flux and React work well
+          br
+          | React's tiny API is great
+          br
+          | There's an art to Components and Stores
+
+      section
         h1 Thanks
         p @markbrown4
         img(src="images/i9dev-logo.svg" width="150")
