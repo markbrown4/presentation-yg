@@ -37,6 +37,8 @@ html
           | Traditional web app with jQuery
           br
           | Existing JSON API
+          br
+          img(src="images/react-logo.svg" width="50")
 
       section.white-bg
         img(src="images/cart-1.png" width="979")
@@ -85,16 +87,6 @@ html
             App.createStore = (obj)-&gt;
               store = Object.assign(Object.create(Store), obj)
               MicroEvent.mixin store
-
-      section
-        p
-          strong Action 
-          | &nbsp; &gt; &nbsp; 
-          strong Dispatcher 
-          | &nbsp; &gt; &nbsp; 
-          strong Store 
-          | &nbsp; &gt; &nbsp; 
-          strong Component 
 
       section.white-bg
         img(src="images/cart-2.png" width="971")
@@ -256,14 +248,20 @@ html
                     &lt;div className="total-label"&gt;Groceries&lt;/div&gt;
                     &lt;div className="total-value"&gt;{ currency(subTotal) }&lt;/div&gt;
                   &lt;/div&gt;
-                  ...
+                  &lt;div className={ "total-item row \#{ pendingClass }"}&gt;
+                    &lt;div className="total-label"&gt;Delivery fee&lt;/div&gt;
+                    &lt;div className="total-value"&gt;{ currency(deliveryTotal) }&lt;/div&gt;
+                  &lt;/div&gt;
                   { for adjustment in @props.order.adjustments
                     &lt;div className={ "total-item row \#{ pendingClass }"}&gt;
                       &lt;div className="total-label"&gt;{ adjustment.label }&lt;/div&gt;
                       &lt;div className="total-value"&gt;{ currency(adjustment.amount) }&lt;/div&gt;
                     &lt;/div&gt;
                   }
-                  ...
+                  &lt;div className={ "total-item row \#{ pendingClass }"}&gt;
+                    &lt;div className="total-label"&gt;Estimated total&lt;/div&gt;
+                    &lt;div className="total-value"&gt;{ currency(estimatedTotal) }&lt;/div&gt;
+                  &lt;/div&gt;
                 &lt;/div&gt;
 
       section
@@ -327,7 +325,24 @@ html
         img(src="images/recipes.png" width="1123")
 
       section
-        h2 Testing
+        h2 Testing Filters
+        pre
+          code.language-coffeescript.
+            { currency } = App.Filters
+
+            describe 'App.Filters', ->
+              describe 'currency()', ->
+                it 'should return empty string if NaN', ->
+                  expect(currency('boo')).to.equal('')
+
+                it 'should return formatted dollars and cents', ->
+                  expect(currency(12.152)).to.equal('$12.15')
+                  expect(currency('12.152')).to.equal('$12.15')
+                  expect(currency(-12)).to.equal('-$12.00')
+                  expect(currency('-12')).to.equal('-$12.00')
+
+      section
+        h2 Testing Actions / Stores
         pre
           code.language-coffeescript.
             { CartActions } = App.Actions
@@ -362,7 +377,7 @@ html
                   expect(newTotalQty).to.equal(totalQty + 1)
 
               describe 'decrementQuantity', ->
-                it 'should increment quantity in CartStore', ->
+                it 'should decrement quantity in CartStore', ->
                   totalQty = _.sum order.line_items, 'quantity'
                   lineItem = order.line_items[0]
                   CartActions.decrementQuantity(lineItem.id, lineItem.quantity - 1)
@@ -375,7 +390,7 @@ html
               describe 'removeLineItem', ->
                 it 'should set quantity to 0 in CartStore', ->
                   lineItem = order.line_items[0]
-                  CartActions.removeLineItem(lineItem.id, lineItem.variant.id)
+                  CartActions.removeLineItem(lineItem.id)
 
                   newOrder = CartStore.getState().order
                   lineItem = newOrder.line_items.find (l)-> l.id == lineItem.id
@@ -421,6 +436,8 @@ html
           | Flux and React work well
           br
           | React's tiny API is great
+          br
+          | render() is messier than templates
           br
           | There's an art to Components and Stores
 
