@@ -374,7 +374,7 @@ describe 'CartActions', ->
         error: "The coupon code was invalid."
       server.requests.shift()
       
-      cartStates = CartStore.getState().order
+      cartStates = CartStore.getState().states
       expect(cartStates.couponError).to.equal("The coupon code was invalid.")
       </code></pre>
       </section>
