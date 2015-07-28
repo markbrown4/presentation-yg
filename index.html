@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>React at Your Grocer</title>
+    <link rel="stylesheet" type="text/css" href="build/build.css">
+  </head>
+  <body>
+    <article>
+      <section class="green-bg">
+        <p><img src="images/yg-logo.png" width="130" alt:></p>
+      </section>
+      <section>
+        <p><img src="images/coffeescript-logo.png" width="225"></p>
+      </section>
+      <section>
+        <p>When the new guy starts writing in CoffeeScript</p>
+        <p><img src="images/angry-panda.gif"></p>
+      </section>
+      <section style="background-image: url(images/morgan.jpg)" class="bg">
+        <h1>This is <strong>Morgan</strong></h1>
+      </section>
+      <section>
+        <h2>yourgrocer.com.au</h2>
+        <p class="text-center"><strong>Rails app </strong>built on <img src="images/spree-logo.svg" height="31"><br>Traditional web app with jQuery<br>Existing JSON API<br><img src="images/react-logo.svg" width="50"></p>
+      </section>
+      <section class="white-bg"><img src="images/cart-1.png" width="979"></section>
+      <section class="white-bg"><img src="images/cart-2.png" width="971"></section>
+      <section>
+        <h2>Back to school</h2><img src="images/react-logo.svg" width="100">
+        <p class="text-center"><a href="https://facebook.github.io/react/docs/tutorial.html">Facebook's React Tutorial</a><br><a href="https://www.youtube.com/watch?v=Pd6Ub7Ju2RM">Learn React, Flux, and Flow: Part I - @colinmegill</a><br><a href="http://blog.andrewray.me/reactjs-for-stupid-people">React for stupid people - @andrewray</a><br><a href="http://blog.andrewray.me/flux-for-stupid-people">Flux for stupid people - @andrewray</a><br><a href="https://github.com/markbrown4/gmail-react">Gmail</a></p>
+      </section>
+      <section>
+        <h2>Flux in 18 lines</h2>
+        <pre><code class="language-coffeescript">window.App =
+  Components: {}
+  Actions: {}
+  Stores: {}
+  
+App.Dispatcher = MicroEvent.mixin
+  register: (events)-&gt;
+    for eventName, callback of events
+      @bind eventName, callback
+      
+Actions =
+  dispatch: (name, payload)-&gt;
+    App.Dispatcher.trigger name, payload
+    
+App.createActions = (obj)-&gt;
+  Object.assign(Object.create(Actions), obj)
+  
+Store =
+  emitChange: -&gt; @trigger 'change'
+  
+App.createStore = (obj)-&gt;
+  store = Object.assign(Object.create(Store), obj)
+  MicroEvent.mixin store
+  </code></pre>
+      </section>
+      <section class="white-bg"><img src="images/cart-2.png" width="971"></section>
+      <section>
+        <h2>Components initiate Actions</h2>
+        <pre><code class="language-coffeescript">{ CartActions } = App.Actions
+
+App.Components.CartItem = React.createClass
+  increment: -&gt;
+    CartActions.updateQuantity(@props.id, @props.quantity + 1)
+    
+  render: -&gt;
+    &lt;a onClick={@increment}&gt;
+      &lt;i className="icon icon-chevron-up" /&gt;
+    &lt;/a&gt;
+    </code></pre>
+      </section>
+      <section>
+        <h2>Actions dispatch an event with a unique name and payload</h2>
+        <pre><code class="language-coffeescript">App.Actions.CartActions = App.createActions
+  updateQuantity: (id, quantity)-&gt;
+    @dispatch 'cart-update-line-item-quantity', id, quantity
+    </code></pre>
+      </section>
+      <section>
+        <h2>Actions are a good place to make requests</h2>
+        <pre><code class="language-coffeescript">App.Actions.CartActions = App.createActions
+  updateQuantity: (id, quantity)-&gt;
+    @dispatch 'cart-update-line-item-quantity', id, quantity
+    
+    updateQuantity(id, quantity)
+    
+# each lineItem can have a timeout
+timeouts = {}
+updateQuantity = (id, quantity)-&gt;
+  clearTimeout(timeouts[id]) if timeouts[id]?
+  timeouts[id] = setTimeout -&gt;
+    SpreeAPI.updateQuantity id, quantity
+  , 500
+  </code></pre>
+      </section>
+      <section>
+        <h2>Stores</h2>
+        <pre><code class="language-coffeescript">_order =
+  lineItems: []
+  
+App.Stores.CartStore = CartStore = App.createStore
+  getState: -&gt;
+    order: _order
+    
+updateQuantity = (id, quantity)-&gt;
+  item = _order.lineItems.find (i)-&gt; i.id == id
+  item.quantity = quantity if item?
+  
+  CartStore.emitChange()
+  
+App.Dispatcher.register
+  'cart-update-line-item-quantity': (id, quantity)-&gt;
+    updateQuantity(id, quantity)
+    </code></pre>
+      </section>
+      <section>
+        <h2>Components</h2>
+        <pre><code class="language-coffeescript">{ CartStore } = App.Stores
+
+App.Components.CartContainer = React.createClass
+  getInitialState: -&gt;
+    CartStore.getState()
+    
+  componentDidMount: -&gt;
+    CartStore.bind 'change', @onChange
+    
+  componentWillUnmount: -&gt;
+    CartStore.unbind 'change', @onChange
+    
+  onChange: -&gt;
+    @setState CartStore.getState()
+    </code></pre>
+      </section>
+      <section>
+        <h2>Container Components</h2>
+        <pre><code class="language-coffeescript">{ CartStore } = App.Stores
+{ Cart } = App.Components
+
+App.Components.CartContainer = React.createClass
+  getInitialState: -&gt;
+    CartStore.getState()
+    
+  componentDidMount: -&gt;
+    CartStore.bind 'change', @onChange
+    
+  componentWillUnmount: -&gt;
+    CartStore.unbind 'change', @onChange
+    
+  onChange: -&gt;
+    @setState CartStore.getState()
+    
+  render: -&gt;
+    # separate data fetching / rendering
+    &lt;Cart {...@state} /&gt;
+    </code></pre>
+      </section>
+      <section>
+        <p>So that's data</p>
+      </section>
+      <section>
+        <h2>Computation</h2><img src="images/cart-3.png" width="971">
+      </section>
+      <section>
+        <h2>CartItem</h2>
+        <pre><code class="language-coffeescript">{ currency } = App.Filters
+
+App.Components.CartItem = React.createClass
+  render: -&gt;
+    &lt;div className={classNames('cart-item row', { 'cart-item-removed': @props.quantity == 0 })}&gt;
+      ...
+      &lt;div className="col"&gt;
+        &lt;QuantitySpinner quantity={@props.quantity} min=1 onIncrement={@increment} onDecrement={@decrement} /&gt;
+      &lt;/div&gt;
+      &lt;div className="col"&gt;
+        &lt;strong className="pull-right"&gt;{currency(@props.price * @props.quantity)}&lt;/strong&gt;
+      &lt;/div&gt;
+      &lt;div className="col"&gt;
+        &lt;a className="btn btn-sm btn-danger pull-right" onClick={@remove}&gt;
+          &lt;i className="icon icon-trash" /&gt;
+        &lt;/a&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    </code></pre>
+      </section>
+      <section>
+        <h2>CartSummary</h2>
+        <pre><code class="language-coffeescript">{ currency } = App.Filters
+
+App.Components.CartSummary = React.createClass
+  render: -&gt;
+    subTotal = _.sum @props.order.lineItems, (lineItem)-&gt;
+      lineItem.price * lineItem.quantity
+    gstTotal = @props.order.taxTotal
+    deliveryTotal = @props.order.estimatedShipTotal
+    adjustmentsTotal = _.sum @props.order.adjustments, (a)-&gt; a.amount
+    
+    estimatedTotal = subTotal + deliveryTotal + adjustmentsTotal
+    pendingClass = classNames('pending-update': @props.states.totalsPendingUpdate)
+    
+    &lt;div className="cart-summary"&gt;
+      &lt;div className="total-item row"&gt;
+        &lt;div className="total-label"&gt;Groceries&lt;/div&gt;
+        &lt;div className="total-value"&gt;{ currency(subTotal) }&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div className={ "total-item row #{ pendingClass }"}&gt;
+        &lt;div className="total-label"&gt;Delivery fee&lt;/div&gt;
+        &lt;div className="total-value"&gt;{ currency(deliveryTotal) }&lt;/div&gt;
+      &lt;/div&gt;
+      { for adjustment in @props.order.adjustments
+        &lt;div className={ "total-item row #{ pendingClass }"}&gt;
+          &lt;div className="total-label"&gt;{ adjustment.label }&lt;/div&gt;
+          &lt;div className="total-value"&gt;{ currency(adjustment.amount) }&lt;/div&gt;
+        &lt;/div&gt;
+      }
+      &lt;div className={ "total-item row #{ pendingClass }"}&gt;
+        &lt;div className="total-label"&gt;Estimated total&lt;/div&gt;
+        &lt;div className="total-value"&gt;{ currency(estimatedTotal) }&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    </code></pre>
+      </section>
+      <section>
+        <h2>States on Stores</h2>
+        <pre><code class="language-coffeescript">_order =
+  lineItems: []
+_states =
+  pendingUpdate: false
+  
+App.Stores.CartStore = CartStore = App.createStore
+  getState: -&gt;
+    order: _order
+    states: _states
+    
+updateQuantity = (id, quantity)-&gt;
+  item = _order.lineItems.find (i)-&gt; i.id == id
+  item.quantity = quantity if item?
+  
+  _states.pendingUpdate = true
+  
+  CartStore.emitChange()
+  
+updateTotals = (data)->
+  _order = data.order
+  _states.pendingUpdate = false
+  
+  CartStore.emitChange()
+  
+App.Dispatcher.register
+  'cart-update-line-item-quantity': (id, quantity)-&gt; updateQuantity(id, quantity)
+  'order-totals-updated': (data)-&gt; updateTotals(data)
+  </code></pre>
+      </section>
+      <section class="white-bg">
+        <h1>CartSummaryContainer</h1><img src="images/checkout-summary.png" width="307.5">
+      </section>
+      <section>
+        <h1>Bootstrapping stores</h1>
+        <pre><code class="language-haml">#cart-component
+  = react_component 'App.Components.CartContainer'
+  
+:coffee
+  App.Stores.CartStore.bootstrap
+    #{ render('orders/_order.jbuilder') }</code></pre>
+        <pre><code class="language-coffeescript">App.Stores.CartStore = CartStore = App.createStore
+  bootstrap: (data)->
+    _order = data.order
+    
+    @emitChange()
+    </code></pre>
+      </section>
+      <section class="white-bg"><img src="images/delivery-picker.png" width="431"></section>
+      <section><img src="images/recipes.png" width="1123"></section>
+      <section>
+        <h2>Testing Filters</h2>
+        <pre><code class="language-coffeescript">{ currency } = App.Filters
+
+describe 'App.Filters', ->
+  describe 'currency()', ->
+    it 'should return empty string if NaN', ->
+      expect(currency('boo')).to.equal('')
+      
+    it 'should return formatted dollars and cents', ->
+      expect(currency(12.152)).to.equal('$12.15')
+      expect(currency('12.152')).to.equal('$12.15')
+      expect(currency(-12)).to.equal('-$12.00')
+      expect(currency('-12')).to.equal('-$12.00')
+      </code></pre>
+      </section>
+      <section>
+        <h2>Testing Actions / Stores</h2>
+        <pre><code class="language-coffeescript">{ CartActions } = App.Actions
+{ CartStore } = App.Stores
+
+server = null
+clock = null
+order = null
+
+describe 'CartActions', ->
+  before ->
+    server = sinon.fakeServer.create()
+    clock = sinon.useFakeTimers()
+    
+  after ->
+    server.restore()
+    clock.restore()
+    
+  beforeEach ->
+    order = chai.create('order')
+    CartStore.bootstrap(order: order)
+    
+  describe 'incrementQuantity', ->
+    it 'should increment total quantity in CartStore', ->
+      totalQty = _.sum order.line_items, 'quantity'
+      lineItem = order.line_items[0]
+      CartActions.incrementQuantity(lineItem.id, lineItem.quantity + 1)
+      
+      newOrder = CartStore.getState().order
+      newTotalQty = _.sum newOrder.line_items, 'quantity'
+      
+      expect(newTotalQty).to.equal(totalQty + 1)
+      
+  describe 'decrementQuantity', ->
+    it 'should decrement quantity in CartStore', ->
+      totalQty = _.sum order.line_items, 'quantity'
+      lineItem = order.line_items[0]
+      CartActions.decrementQuantity(lineItem.id, lineItem.quantity - 1)
+      
+      newOrder = CartStore.getState().order
+      newTotalQty = _.sum newOrder.line_items, 'quantity'
+      
+      expect(newTotalQty).to.equal(totalQty - 1)
+      
+  describe 'removeLineItem', ->
+    it 'should set quantity to 0 in CartStore', ->
+      lineItem = order.line_items[0]
+      CartActions.removeLineItem(lineItem.id)
+      
+      newOrder = CartStore.getState().order
+      lineItem = newOrder.line_items.find (l)-> l.id == lineItem.id
+      
+      expect(lineItem.quantity).to.equal(0)
+      
+  describe 'applyCoupon', ->
+    it 'should add an adjustment CartStore', ->
+      CartActions.applyCoupon('IKNOWPETERPAN')
+      # PUT /shop/api/orders/:id/apply_coupon_code
+      
+      server.requests[0].respond 200, { "Content-Type": "application/json" }, JSON.stringify
+        success: "The coupon code was successfully applied to your order."
+        error: null
+      server.requests.shift()
+      
+      # GET /shop/api/orders/:id
+      order.adjustments.push
+        eligible: true
+        amount: '-4.00'
+        label: 'Free delivery'
+      server.requests[0].respond 200, { "Content-Type": "application/json" }, JSON.stringify(order)
+      server.requests.shift()
+      
+      newOrder = CartStore.getState().order
+      
+      expect(newOrder.adjustments.length).to.equal(order.adjustments.length)
+      
+    it 'should expose an error if the coupon is no good', ->
+      CartActions.applyCoupon('IKNOWDARTH')
+      
+      server.requests[0].respond 200, { "Content-Type": "application/json" }, JSON.stringify
+        success: null
+        error: "The coupon code was invalid."
+      server.requests.shift()
+      
+      cartStates = CartStore.getState().order
+      expect(cartStates.couponError).to.equal("The coupon code was invalid.")
+      </code></pre>
+      </section>
+      <sections>
+        <h1>Thoughts so far</h1>
+        <p class="text-center">Flux and React work well<br>React's tiny API is great<br>render() is messier than templates<br>There's an art to Components and Stores</p>
+      </sections>
+      <section>
+        <h2>Worth following</h2>
+        <p><a href="http://discuss.reactjs.org">discuss.reactjs.org</a></p>
+        <p><a href="https://twitter.com/chantastic"><span class="avatar"><img src="images/chantastic.jpg" width="50"></span>@chantastic</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://twitter.com/colinmegill"><span class="avatar"><img src="images/colinmegill.jpg" width="50"></span>@colinmegill</a></p>
+      </section>
+      <section>
+        <h1>Thanks</h1>
+        <p>@markbrown4</p><img src="images/i9dev-logo.svg" width="150">
+      </section>
+      <section class="green-bg">
+        <p><img src="images/yg-logo.png" width="130" alt:></p>
+      </section>
+    </article>
+    <script src="build/build.js"></script>
+  </body>
+</html>
